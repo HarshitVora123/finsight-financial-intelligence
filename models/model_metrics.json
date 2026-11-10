@@ -1,0 +1,231 @@
+{
+  "model_version": "brightpath-risk-0.1.0",
+  "trained_at_utc": "2026-11-10T19:25:34.578272+00:00",
+  "source": "synthetic_demo",
+  "target": "simulated_missed_payment_next_month",
+  "features": [
+    "monthly_income",
+    "credit_limit",
+    "credit_utilization_ratio",
+    "existing_debt",
+    "active_credit_accounts",
+    "savings_balance",
+    "monthly_debt_payment",
+    "debt_to_income_ratio",
+    "monthly_spending",
+    "expense_to_income_ratio",
+    "monthly_savings_ratio",
+    "spending_volatility",
+    "income_stability_score",
+    "missed_payment_count",
+    "recent_delinquency_frequency",
+    "payment_consistency_score",
+    "emergency_savings_coverage",
+    "month_over_month_spend_change"
+  ],
+  "protected_fields_excluded": [
+    "sex",
+    "age",
+    "marital_status",
+    "education"
+  ],
+  "proxy_prone_profile_fields_excluded": [
+    "employment_months",
+    "credit_history_months"
+  ],
+  "selected_model": "tuned_random_forest",
+  "decision_threshold": 0.22499999999999998,
+  "training_rows": 600,
+  "test_rows": 200,
+  "positive_rate": 0.335,
+  "evaluation": {
+    "threshold": 0.22499999999999998,
+    "accuracy": 0.57,
+    "precision": 0.4188034188034188,
+    "recall": 0.7313432835820896,
+    "f1": 0.532608695652174,
+    "roc_auc": 0.7042980585792841,
+    "pr_auc": 0.6016670568434206,
+    "specificity": 0.48872180451127817,
+    "false_positive_rate": 0.5112781954887218,
+    "false_negative_rate": 0.26865671641791045,
+    "brier_score": 0.190516526438873,
+    "confusion_matrix": {
+      "tn": 65,
+      "fp": 68,
+      "fn": 18,
+      "tp": 49
+    },
+    "calibration_curve": {
+      "mean_predicted": [
+        0.25,
+        0.15,
+        0.15,
+        0.3,
+        0.2,
+        0.25,
+        0.2,
+        0.55,
+        0.55,
+        0.75
+      ],
+      "observed_rate": [
+        0.12095317441172851,
+        0.14142877517103813,
+        0.16729262864105682,
+        0.1969291307782707,
+        0.2396033432758519,
+        0.2924339060552993,
+        0.35926041767352684,
+        0.5064276433597088,
+        0.612084653908586,
+        0.7422281986669762
+      ]
+    },
+    "decision_cost_assumption": {
+      "false_negative_relative_cost": 3,
+      "false_positive_relative_cost": 1
+    }
+  },
+  "cross_validation": {
+    "logistic_regression": {
+      "cv_pr_auc_mean": 0.5352084500558264,
+      "cv_roc_auc_mean": 0.7042980585792841,
+      "cv_recall_mean": 0.6169154228855721,
+      "cv_f1_mean": 0.5382968646395757,
+      "cv_pr_auc_std": 0.04327737292838315
+    },
+    "decision_tree": {
+      "cv_pr_auc_mean": 0.5403302821612971,
+      "cv_roc_auc_mean": 0.7076646840983054,
+      "cv_recall_mean": 0.5970149253731343,
+      "cv_f1_mean": 0.5575990978020923,
+      "cv_pr_auc_std": 0.03149332585449877
+    },
+    "random_forest": {
+      "cv_pr_auc_mean": 0.6445325158797083,
+      "cv_roc_auc_mean": 0.7688998615942841,
+      "cv_recall_mean": 0.5671641791044776,
+      "cv_f1_mean": 0.5948695588983358,
+      "cv_pr_auc_std": 0.01955069754783466
+    },
+    "gradient_boosting": {
+      "cv_pr_auc_mean": 0.6270306210614555,
+      "cv_roc_auc_mean": 0.7520854374742827,
+      "cv_recall_mean": 0.4676616915422886,
+      "cv_f1_mean": 0.541322681947682,
+      "cv_pr_auc_std": 0.010625265130466991
+    },
+    "tuned_random_forest": {
+      "cv_pr_auc_mean": 0.646374318712477,
+      "cv_recall_mean": 0.5522388059701493,
+      "cv_pr_auc_std": 0.02183181495568445,
+      "best_params": {
+        "classifier__max_depth": 5,
+        "classifier__n_estimators": 200
+      }
+    }
+  },
+  "feature_importance": [
+    {
+      "feature": "emergency_savings_coverage",
+      "importance_mean": 0.12433331649189036,
+      "importance_std": 0.018119658704828637
+    },
+    {
+      "feature": "savings_balance",
+      "importance_mean": 0.08815765610159979,
+      "importance_std": 0.01450872030026573
+    },
+    {
+      "feature": "credit_utilization_ratio",
+      "importance_mean": 0.018538604234994427,
+      "importance_std": 0.004784316269590655
+    },
+    {
+      "feature": "missed_payment_count",
+      "importance_mean": 0.0010249094247149371,
+      "importance_std": 0.0016453617876648356
+    },
+    {
+      "feature": "spending_volatility",
+      "importance_mean": -6.32031396996524e-08,
+      "importance_std": 0.0036545067303571073
+    },
+    {
+      "feature": "active_credit_accounts",
+      "importance_mean": -0.0007216799858934753,
+      "importance_std": 0.0008737293015701697
+    },
+    {
+      "feature": "monthly_spending",
+      "importance_mean": -0.0008937346779775979,
+      "importance_std": 0.0028185094589049556
+    },
+    {
+      "feature": "month_over_month_spend_change",
+      "importance_mean": -0.0011157842718495514,
+      "importance_std": 0.002845120640385843
+    },
+    {
+      "feature": "expense_to_income_ratio",
+      "importance_mean": -0.0018325379060170287,
+      "importance_std": 0.0013679518098989756
+    },
+    {
+      "feature": "income_stability_score",
+      "importance_mean": -0.0032301676527354715,
+      "importance_std": 0.0018367819511557685
+    },
+    {
+      "feature": "recent_delinquency_frequency",
+      "importance_mean": -0.003528693534513927,
+      "importance_std": 0.002897173321689824
+    },
+    {
+      "feature": "debt_to_income_ratio",
+      "importance_mean": -0.003762389978208014,
+      "importance_std": 0.009176997491999992
+    },
+    {
+      "feature": "credit_limit",
+      "importance_mean": -0.003825096809485129,
+      "importance_std": 0.002586230578478196
+    },
+    {
+      "feature": "monthly_savings_ratio",
+      "importance_mean": -0.004522150561867178,
+      "importance_std": 0.0030768257580617957
+    },
+    {
+      "feature": "monthly_debt_payment",
+      "importance_mean": -0.004541200846697025,
+      "importance_std": 0.006105846386000052
+    },
+    {
+      "feature": "payment_consistency_score",
+      "importance_mean": -0.004820110013751888,
+      "importance_std": 0.002944457072069706
+    },
+    {
+      "feature": "existing_debt",
+      "importance_mean": -0.004969201987826954,
+      "importance_std": 0.007853993824219368
+    },
+    {
+      "feature": "monthly_income",
+      "importance_mean": -0.0068761469925234355,
+      "importance_std": 0.00753469792725785
+    }
+  ],
+  "selection_policy": {
+    "primary_metric": "cross-validated PR-AUC",
+    "minimum_recall_at_0_5": 0.45,
+    "selected_candidate_fallback": null,
+    "threshold_policy": "Minimize 3*false negatives + 1*false positives using out-of-fold calibrated train probabilities."
+  },
+  "limitations": [
+    "Decision support only; not an automated credit approval or denial.",
+    "Synthetic labels represent a simulation and are not real customer outcomes."
+  ]
+}
