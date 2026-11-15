@@ -1,1 +1,1 @@
-"""BrightPath AI API package."""
+"""FinSight API package."""

@@ -23,10 +23,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
-from brightpath.features.engineering import MODEL_FEATURES
+from finsight.features.engineering import MODEL_FEATURES
 
 LOGGER = logging.getLogger(__name__)
-MODEL_VERSION = "brightpath-risk-0.1.0"
+MODEL_VERSION = "finsight-risk-0.1.0"
 
 
 def _pipeline(classifier) -> Pipeline:

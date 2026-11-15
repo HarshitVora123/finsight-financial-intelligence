@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "brightpath-ai"
+name = "finsight"
 version = "0.1.0"
 description = "Portfolio simulation for consumer finance decision support"
 requires-python = ">=3.11"
@@ -19,7 +19,7 @@ test = ["pytest>=8.0", "httpx>=0.27"]
 
 [tool.setuptools.packages.find]
 where = ["src", "."]
-include = ["brightpath*", "backend*", "app*"]
+include = ["finsight*", "backend*", "app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

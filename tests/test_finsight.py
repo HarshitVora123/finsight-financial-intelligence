@@ -23,16 +23,16 @@ TEST_TMP.mkdir(exist_ok=True)
 tempfile.tempdir = str(TEST_TMP)
 sys.path.insert(0, str(ROOT / "src"))
 
-from brightpath.data.storage import write_bundle_sqlite, write_segments_sqlite
-from brightpath.data.synthetic import generate_synthetic_data
-from brightpath.data.uci import load_uci_credit_default
-from brightpath.data.validation import validate_bundle
-from brightpath.evaluation.experimentation import simulate_experiment
-from brightpath.features.engineering import MODEL_FEATURES, build_customer_features
-from brightpath.models.risk import predict_risk, load_model
-from brightpath.models.segmentation import segment_customers
-from brightpath.optimization.debt import compare_strategies, simulate_strategy
-from brightpath.recommendations.products import match_products
+from finsight.data.storage import write_bundle_sqlite, write_segments_sqlite
+from finsight.data.synthetic import generate_synthetic_data
+from finsight.data.uci import load_uci_credit_default
+from finsight.data.validation import validate_bundle
+from finsight.evaluation.experimentation import simulate_experiment
+from finsight.features.engineering import MODEL_FEATURES, build_customer_features
+from finsight.models.risk import predict_risk, load_model
+from finsight.models.segmentation import segment_customers
+from finsight.optimization.debt import compare_strategies, simulate_strategy
+from finsight.recommendations.products import match_products
 import backend.main as api
 
 
@@ -158,12 +158,12 @@ class TestApiIntegration(unittest.TestCase):
             (root / "models").mkdir()
             (root / "reports").mkdir()
             features.to_csv(root / "data" / "processed" / "customer_features.csv", index=False)
-            write_bundle_sqlite(bundle, root / "data" / "brightpath.sqlite")
+            write_bundle_sqlite(bundle, root / "data" / "finsight.sqlite")
             segments = pd.DataFrame({"customer_id": features.customer_id, "cluster_id": 0,
                                      "segment": "Financially Stable", "pca_1": 0.0, "pca_2": 0.0})
             segments.to_csv(root / "reports" / "customer_segments.csv", index=False)
-            write_segments_sqlite(segments, root / "data" / "brightpath.sqlite")
-            with closing(sqlite3.connect(root / "data" / "brightpath.sqlite")) as connection:
+            write_segments_sqlite(segments, root / "data" / "finsight.sqlite")
+            with closing(sqlite3.connect(root / "data" / "finsight.sqlite")) as connection:
                 foreign_keys = connection.execute("PRAGMA foreign_key_list(customer_segments)").fetchall()
                 self.assertEqual(foreign_keys[0][2], "customers")
                 self.assertEqual(connection.execute("PRAGMA foreign_key_check").fetchall(), [])

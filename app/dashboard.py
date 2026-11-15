@@ -1,11 +1,11 @@
-"""BrightPath AI's interactive Streamlit dashboard."""
+"""FinSight's interactive Streamlit dashboard."""
 
 import streamlit as st
 
 from app.common import load_features
 from app.views import debt, experiment, overview, products, profile, risk, segmentation
 
-st.set_page_config(page_title="BrightPath AI", page_icon="✦", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="FinSight", page_icon="✦", layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
 <style>
   .stApp { background: #f5f8fa; color: #12242d; }
@@ -22,7 +22,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.markdown("# ✦ BrightPath AI")
+    st.markdown("# ✦ FinSight")
     st.caption("Financial decision intelligence")
     page = st.radio("Workspace", ["Executive Overview", "Customer Profile", "Risk Prediction",
                                    "Customer Segmentation", "Debt Optimization", "Product Matching",
@@ -36,4 +36,4 @@ views = {"Executive Overview": overview, "Customer Profile": profile, "Risk Pred
          "Product Matching": products, "Experimentation": experiment}
 views[page].render(frame)
 st.markdown("---")
-st.caption("BrightPath AI is an educational portfolio simulation. Model estimates and product examples are not financial advice or actual lender offers.")
+st.caption("FinSight is an educational portfolio simulation. Model estimates and product examples are not financial advice or actual lender offers.")

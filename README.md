@@ -1,6 +1,6 @@
-# BrightPath AI
+# FinSight
 
-BrightPath AI is a reproducible portfolio simulation for consumer-finance decision support. It combines financial behaviour analysis, repayment-risk estimates, behavioural segments, debt payoff projections, transparent hypothetical product matching, and a simulated experiment in a FastAPI + Streamlit application.
+FinSight is a reproducible portfolio simulation for consumer-finance decision support. It combines financial behaviour analysis, repayment-risk estimates, behavioural segments, debt payoff projections, transparent hypothetical product matching, and a simulated experiment in a FastAPI + Streamlit application.
 
 > **Scope:** This project is not a lending system, does not approve or deny credit, and is not financial advice. Synthetic customer, transaction, repayment, and experimental results are labelled as such. Public historical data is isolated from the synthetic dashboard profiles.
 
@@ -32,7 +32,7 @@ flowchart LR
 | Source | Use | Provenance |
 |---|---|---|
 | [UCI Default of Credit Card Clients, dataset 350](https://archive.ics.uci.edu/dataset/350/default%2Bof%2Bcredit%2Bcard%2Bclients) | Optional independent historical next-month default modeling | 30,000 Taiwan credit-card records; data from 2005. Licensed CC BY 4.0. Cite: Yeh, I. (2009), [UCI dataset DOI](https://doi.org/10.24432/C55S3H). |
-| Generated demo tables | Dashboard, behaviour features, clustering, optimization, experiment | Deterministic synthetic records created by `brightpath.data.synthetic`; seed and customer count are configurable. No private or Bright Money data is used. |
+| Generated demo tables | Dashboard, behaviour features, clustering, optimization, experiment | Deterministic synthetic records created by `finsight.data.synthetic`; seed and customer count are configurable. No private or Bright Money data is used. |
 
 The generated table and model-feature dictionaries are in `reports/data_dictionary.json` after the pipeline runs. Employment tenure and credit-history length remain profile fields for descriptive analysis, but are deliberately excluded from risk model features because they can act as age proxies.
 
@@ -96,7 +96,7 @@ In the randomized **simulation**, treatment on-time rate was 85.5% versus 84.2% 
 
 ## EDA and statistical investigation
 
-`brightpath.evaluation.eda` writes means, medians, modes, variance, standard deviation, quantiles, skewness, kurtosis, correlations, and hypothesis tests. It compares missed/late and on-time synthetic groups using Welch t-tests and Mann–Whitney tests, tests utilization group independence with chi-square, and reports confidence intervals for mean differences. The null and alternative hypotheses and a plain-language interpretation accompany the values. Statistical significance in a generated sample is not evidence of real-world impact; practical significance depends on effect size and a real target population.
+`finsight.evaluation.eda` writes means, medians, modes, variance, standard deviation, quantiles, skewness, kurtosis, correlations, and hypothesis tests. It compares missed/late and on-time synthetic groups using Welch t-tests and Mann–Whitney tests, tests utilization group independence with chi-square, and reports confidence intervals for mean differences. The null and alternative hypotheses and a plain-language interpretation accompany the values. Statistical significance in a generated sample is not evidence of real-world impact; practical significance depends on effect size and a real target population.
 
 ## Feature engineering and modeling
 
@@ -142,13 +142,11 @@ python -m uvicorn backend.main:app --reload --port 8000
 python -m streamlit run app/dashboard.py
 ```
 
-The dashboard has seven views: Executive Overview, Customer Profile, Risk Prediction, Customer Segmentation, Debt Optimization, Product Matching and Experimentation. Its prediction, profile, payoff and matching interactions call the FastAPI service. API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `BRIGHTPATH_API_URL` when the API is hosted elsewhere.
+The dashboard has seven views: Executive Overview, Customer Profile, Risk Prediction, Customer Segmentation, Debt Optimization, Product Matching and Experimentation. Its prediction, profile, payoff and matching interactions call the FastAPI service. API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `FINSIGHT_API_URL` when the API is hosted elsewhere.
 
 ### Dashboard screenshot
 
-Captured from the running Streamlit application after the pipeline generated its synthetic demo data. The screenshot shows the Executive Overview at 1440 × 1100 pixels.
-
-![BrightPath AI Executive Overview](docs/screenshots/dashboard-overview.png)
+Open the running dashboard at [http://127.0.0.1:8501](http://127.0.0.1:8501) to view the current FinSight interface. The previous branded screenshot was removed so it does not show stale project identity.
 
 ### Docker
 
@@ -174,7 +172,7 @@ The API validates request types and finance ranges with Pydantic, returns 404 fo
 
 ## SQL analytics
 
-`sql/analytics.sql` contains customer financial summaries, monthly transaction aggregations with `LAG`, repayment rates by segment, cohort analysis, cumulative payments with a window frame, segment-level rankings, and simulated outcome rates. It uses CTEs, joins and window functions. Run the queries against `data/brightpath.sqlite` after the pipeline; see `sql/README.md` for the business purpose and execution notes.
+`sql/analytics.sql` contains customer financial summaries, monthly transaction aggregations with `LAG`, repayment rates by segment, cohort analysis, cumulative payments with a window frame, segment-level rankings, and simulated outcome rates. It uses CTEs, joins and window functions. Run the queries against `data/finsight.sqlite` after the pipeline; see `sql/README.md` for the business purpose and execution notes.
 
 ## Monitoring and responsible use
 

@@ -1,4 +1,4 @@
-"""Generate data and build the reproducible BrightPath demo artifacts."""
+"""Generate data and build the reproducible FinSight demo artifacts."""
 
 from __future__ import annotations
 
@@ -13,15 +13,15 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brightpath.data.storage import write_bundle_sqlite, write_segments_sqlite
-from brightpath.data.synthetic import generate_synthetic_data
-from brightpath.data.validation import normalize_categories, validate_bundle
-from brightpath.evaluation.eda import create_eda_report
-from brightpath.evaluation.experimentation import simulate_experiment
-from brightpath.features.engineering import build_customer_features, source_table_dictionary
-from brightpath.models.risk import load_model, train_risk_model
-from brightpath.models.segmentation import segment_customers
-from brightpath.monitoring.monitor import monitor_batch
+from finsight.data.storage import write_bundle_sqlite, write_segments_sqlite
+from finsight.data.synthetic import generate_synthetic_data
+from finsight.data.validation import normalize_categories, validate_bundle
+from finsight.evaluation.eda import create_eda_report
+from finsight.evaluation.experimentation import simulate_experiment
+from finsight.features.engineering import build_customer_features, source_table_dictionary
+from finsight.models.risk import load_model, train_risk_model
+from finsight.models.segmentation import segment_customers
+from finsight.monitoring.monitor import monitor_batch
 
 
 def _render_readme_summary(summary: dict, model: dict, segmentation: dict,
@@ -108,7 +108,7 @@ def run(customers: int = 1_200, seed: int = 42) -> dict:
     (ROOT / "data" / "synthetic").mkdir(parents=True, exist_ok=True)
     for table_name in ("customers", "transactions", "debts", "repayments"):
         getattr(bundle, table_name).to_csv(ROOT / "data" / "synthetic" / f"{table_name}.csv", index=False)
-    write_bundle_sqlite(bundle, ROOT / "data" / "brightpath.sqlite")
+    write_bundle_sqlite(bundle, ROOT / "data" / "finsight.sqlite")
     (ROOT / "reports" / "data_quality.json").write_text(json.dumps(quality, indent=2), encoding="utf-8")
     features = build_customer_features(bundle.customers, bundle.transactions, bundle.repayments)
     features.to_csv(ROOT / "data" / "processed" / "customer_features.csv", index=False)
@@ -117,7 +117,7 @@ def run(customers: int = 1_200, seed: int = 42) -> dict:
     model_metadata = train_risk_model(features, ROOT / "models", seed=seed)
     segmentation = segment_customers(features, ROOT / "reports", seed=seed)
     write_segments_sqlite(pd.read_csv(ROOT / "reports" / "customer_segments.csv"),
-                          ROOT / "data" / "brightpath.sqlite")
+                          ROOT / "data" / "finsight.sqlite")
     experiment = simulate_experiment(features, ROOT / "reports", seed=seed)
     artifact = load_model(ROOT / "models" / "risk_model.joblib")
     numeric = features[artifact["feature_columns"]]

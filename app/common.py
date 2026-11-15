@@ -8,7 +8,7 @@ import requests
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parents[1]
-API_BASE = os.getenv("BRIGHTPATH_API_URL", "http://127.0.0.1:8000").rstrip("/")
+API_BASE = os.getenv("FINSIGHT_API_URL", "http://127.0.0.1:8000").rstrip("/")
 
 
 @st.cache_data(show_spinner=False)

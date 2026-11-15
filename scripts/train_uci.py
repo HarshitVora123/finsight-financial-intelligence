@@ -6,8 +6,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brightpath.data.uci import load_uci_credit_default
-from brightpath.models.risk import train_risk_model
+from finsight.data.uci import load_uci_credit_default
+from finsight.models.risk import train_risk_model
 
 
 if __name__ == "__main__":

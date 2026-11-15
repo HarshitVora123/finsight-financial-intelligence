@@ -1,4 +1,4 @@
--- BrightPath AI analytics, compatible with SQLite 3.25+.
+-- FinSight analytics, compatible with SQLite 3.25+.
 -- Tables are created by scripts/run_pipeline.py. Every metric is descriptive.
 
 -- 1) Customer-level financial summary: cash flow, debt-service ratio, and utilization.

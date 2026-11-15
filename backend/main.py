@@ -15,13 +15,13 @@ from pydantic import BaseModel, Field, model_validator
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brightpath.models.risk import load_model, predict_risk
-from brightpath.optimization.debt import compare_strategies
-from brightpath.recommendations.products import match_products
+from finsight.models.risk import load_model, predict_risk
+from finsight.optimization.debt import compare_strategies
+from finsight.recommendations.products import match_products
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("brightpath.api")
-app = FastAPI(title="BrightPath AI", version="0.1.0",
+logger = logging.getLogger("finsight.api")
+app = FastAPI(title="FinSight", version="0.1.0",
               description="Portfolio decision-support API. Not a credit approval or denial service.")
 
 
@@ -156,7 +156,7 @@ def _find_customer(customer_id: str) -> pd.Series:
 @app.get("/health", response_model=HealthResponse)
 def health():
     return {"status": "ok", "model_ready": (ROOT / "models" / "risk_model.joblib").exists(),
-            "database_ready": (ROOT / "data" / "brightpath.sqlite").exists(),
+            "database_ready": (ROOT / "data" / "finsight.sqlite").exists(),
             "data_source": "synthetic_demo"}
 
 
@@ -175,7 +175,7 @@ def dashboard_summary():
         distribution = pd.read_csv(segments_path).segment.value_counts().to_dict()
     monthly_trends = []
     try:
-        with closing(sqlite3.connect(ROOT / "data" / "brightpath.sqlite")) as connection:
+        with closing(sqlite3.connect(ROOT / "data" / "finsight.sqlite")) as connection:
             monthly_trends = pd.read_sql_query("""
                 WITH by_customer_month AS (
                     SELECT customer_id, substr(transaction_date, 1, 7) AS month,
@@ -239,7 +239,7 @@ def match_products_endpoint(request: ProductRequest):
     else:
         row = _find_customer(request.customer_id or "")
         profile = row.to_dict()
-        with closing(sqlite3.connect(ROOT / "data" / "brightpath.sqlite")) as connection:
+        with closing(sqlite3.connect(ROOT / "data" / "finsight.sqlite")) as connection:
             debts = pd.read_sql_query("SELECT * FROM debts WHERE customer_id = ?", connection,
                                       params=(request.customer_id,)).to_dict(orient="records")
     try:
@@ -251,7 +251,7 @@ def match_products_endpoint(request: ProductRequest):
 @app.get("/customer/{customer_id}/profile", response_model=CustomerProfileResponse)
 def customer_profile(customer_id: str):
     row = _find_customer(customer_id)
-    database = ROOT / "data" / "brightpath.sqlite"
+    database = ROOT / "data" / "finsight.sqlite"
     try:
         with closing(sqlite3.connect(database)) as connection:
             repayments = pd.read_sql_query("SELECT period, amount_due, amount_paid, on_time FROM repayments WHERE customer_id = ? ORDER BY period",

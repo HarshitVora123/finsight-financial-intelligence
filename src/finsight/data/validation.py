@@ -1,4 +1,4 @@
-"""Schema and quality checks for BrightPath source tables."""
+"""Schema and quality checks for FinSight source tables."""
 
 from __future__ import annotations
 
