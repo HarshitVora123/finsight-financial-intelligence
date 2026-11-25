@@ -24,13 +24,20 @@ def _label_segment(row: pd.Series, baseline: pd.Series) -> tuple[str, str, str]:
         return "High Credit Utilization", "Revolving balances consume a large share of available limit.", "Offer utilization coaching and a payoff plan; review consolidation affordability."
     if row.debt_to_income_ratio > max(.22, baseline.debt_to_income_ratio * 1.35):
         return "High Debt Burden", "Required monthly debt payments are high relative to income.", "Prioritize minimum-payment safety and compare lower-cost payoff scenarios."
+    if (row.recent_delinquency_frequency > max(.25, baseline.recent_delinquency_frequency * 1.35)
+            or row.payment_consistency_score < min(.65, baseline.payment_consistency_score * .80)):
+        return ("Recent Repayment Difficulty",
+                "Recent repayment observations show elevated missed payments or low on-time consistency.",
+                "Offer due-date and minimum-payment support; review cash flow and payoff options with the customer.")
     if row.spending_volatility > max(.16, baseline.spending_volatility * 1.35):
-        return "Irregular Cash Flow", "Observed monthly outflows vary more than the portfolio midpoint.", "Offer cash-flow calendar tools and due-date alignment."
+        return "Irregular Spending", "Observed monthly outflows vary more than the portfolio midpoint.", "Offer cash-flow calendar tools and due-date alignment."
     if row.emergency_savings_coverage < max(.5, baseline.emergency_savings_coverage * .55):
         return "Limited Emergency Buffer", "Liquid savings cover few observed months of spending.", "Suggest an affordable starter buffer alongside required debt minimums."
     if row.payment_consistency_score >= baseline.payment_consistency_score and row.credit_utilization_ratio <= baseline.credit_utilization_ratio:
         return "Consistent Repayers", "Observed on-time payment share is at or above the portfolio midpoint.", "Support continued payment consistency and optional savings goals."
-    return "Financially Stable", "Observed affordability and cash-flow signals are near or better than portfolio medians.", "Offer self-serve progress tracking and optional balance optimization."
+    return ("Mixed Financial Profile",
+            "No single measured support signal dominates under the sample's segment rules.",
+            "Offer self-serve tools and ask about the customer's priorities before suggesting a product.")
 
 
 def segment_customers(frame: pd.DataFrame, output_dir: str | Path,

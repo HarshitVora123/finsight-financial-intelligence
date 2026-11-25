@@ -82,7 +82,7 @@ def _render_readme_summary(summary: dict, model: dict, segmentation: dict,
         "These associations describe the generated target mechanism and are not evidence about real consumers.",
         f"K-means selected **{segmentation['selected_k']} clusters** (silhouette {segmentation['silhouette_score']:.3f}; "
         f"second-seed ARI {segmentation['cluster_stability_ari']:.3f}): " + "; ".join(segment_lines) + ". "
-        "Names are assigned from the observed generated cluster profiles.",
+        "Rule-based labels are assigned from observed cluster averages versus portfolio medians; mixed profiles are not automatically described as stable.",
         f"In the randomized **simulation**, treatment on-time rate was {groups['treatment_on_time_rate']:.1%} versus "
         f"{groups['control_on_time_rate']:.1%} in control, a {on_time['difference_treatment_minus_control'] * 100:.1f}-point difference "
         f"(95% CI {on_time['95pct_ci'][0] * 100:.1f} to {on_time['95pct_ci'][1] * 100:.1f} percentage points, p={on_time['p_value']:.3f}); "

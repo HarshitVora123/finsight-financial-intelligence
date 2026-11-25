@@ -56,15 +56,29 @@ The generated profile, transaction, debt and repayment tables are stored separat
 
 ## Reproduce the outputs
 
-Python 3.11 or newer is recommended. All demo artifacts can be regenerated from the fixed seed:
+Python 3.11 or newer is recommended. Create the virtual environment and install the project dependencies before running the pipeline.
+
+### Windows PowerShell
+
+```powershell
+python -m venv .venv
+\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python scripts\run_pipeline.py --customers 800 --seed 42
+```
+
+### macOS or Linux
 
 ```bash
-python -m venv .venv
-# Windows PowerShell: .venv\Scripts\Activate.ps1
-# macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 python scripts/run_pipeline.py --customers 800 --seed 42
 ```
+
+Installing `requirements.txt` installs Streamlit, pandas and the other runtime dependencies into the virtual environment. Activate that environment in every new terminal before running a project command.
 
 The pipeline creates the linked synthetic tables, quality checks, engineered features, SQLite database, EDA report, model comparison, segmentation, experiment, monitoring log and local artifacts. Generated datasets and fitted models are ignored by Git and should be regenerated locally.
 
@@ -89,7 +103,7 @@ Cross-validation PR-AUC / recall at threshold 0.5: Logistic Regression **0.535 /
 
 EDA found mean utilization of 42.2% for simulated missed-payment cases versus 34.1% for on-time cases (difference 8.2 percentage points, 95% CI 5.3 to 11.1 points, Welch p=3.4e-08, Cohen's d=0.42). Debt-payment-to-income ratio was 15.2% versus 12.7% (difference 2.5 percentage points, 95% CI 1.3 to 3.8 points, p=8.8e-05). Spending volatility was 6.02% versus 5.93% (p=0.558), so the example volatility hypothesis was not supported. The >=70% utilization chi-square test had p=0.000269, Cramer's V=0.129. These associations describe the generated target mechanism and are not evidence about real consumers.
 
-K-means selected **2 clusters** (silhouette 0.207; second-seed ARI 1.000): 534 `Consistent Repayers` (on-time share 92.9%, utilization 32.8%, savings coverage 4.5 months); 266 `Financially Stable` (on-time share 38.8%, utilization 44.8%, savings coverage 1.6 months). Names are assigned from the observed generated cluster profiles.
+K-means selected **2 clusters** (silhouette 0.207; second-seed ARI 1.000): 534 `Consistent Repayers` (on-time share 92.9%, utilization 32.8%, savings coverage 4.5 months); 266 `Recent Repayment Difficulty` (on-time share 38.8%, utilization 44.8%, savings coverage 1.6 months). Rule-based labels are assigned from observed cluster averages versus portfolio medians; mixed profiles are not automatically described as stable.
 
 In the randomized **simulation**, treatment on-time rate was 85.5% versus 84.2% in control, a 1.2-point difference (95% CI -3.7 to 6.2 percentage points, p=0.622); this simulated on-time difference is not statistically significant at 5%. Simulated mean debt reduction differed by 93.84 units (95% CI -7.93 to 195.60, Welch p=0.0707); this difference is not statistically significant at 5%. Generic/personalized acceptance was 25.5%/68.5%. Estimated interest saved was 185/1,553 units for control/treatment under the stated simulator rules. These are not real customer outcomes or causal evidence.
 <!-- GENERATED_RUN_SUMMARY_END -->
@@ -108,7 +122,7 @@ The separate UCI model predicts the historical Taiwan dataset's next-month defau
 
 ## Customer segmentation
 
-The segmentation service scales nine financial behaviour features, checks K-means solutions for 2–6 clusters with silhouette score, compares a second seeded fit using adjusted Rand index, and projects results into two PCA coordinates. Human-readable labels are assigned after examining cluster averages against portfolio medians. Segment characteristics, challenges, interventions, sizes and business opportunities are saved in `reports/segmentation_summary.json`. Labels are exploratory, not eligibility categories.
+The segmentation service scales nine financial behaviour features, checks K-means solutions for 2–6 clusters with silhouette score, compares a second seeded fit using adjusted Rand index, and projects results into two PCA coordinates. Explicit label rules compare cluster averages with portfolio medians and include recent repayment difficulty; profiles that do not meet a named rule are labeled as mixed rather than automatically stable. Segment characteristics, challenges, interventions, sizes and business opportunities are saved in `reports/segmentation_summary.json`. Labels are exploratory, not eligibility categories.
 
 ## Debt payoff optimization
 
@@ -124,17 +138,17 @@ The seeded simulation randomly assigns profiles to a generic control or personal
 
 ## Run the applications
 
-First activate the project virtual environment in each terminal and generate the data and model artifacts with the pipeline. From PowerShell, run this once in Terminal 1:
+Activate the project virtual environment and generate the data and model artifacts in Terminal 1:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 python scripts\run_pipeline.py --customers 800 --seed 42
 ```
 
-Keep that environment active and start the API in Terminal 1. Activate the same environment in Terminal 2 and start the dashboard:
+Keep Terminal 1 open and start the API there. In Terminal 2, activate the same environment and start the dashboard:
 
 ```powershell
-# Terminal 1
+# Terminal 1 (already activated above)
 python -m uvicorn backend.main:app --reload --port 8000
 
 # Terminal 2 (from the project root)
@@ -144,9 +158,9 @@ python -m streamlit run app/dashboard.py
 
 The dashboard has seven views: Executive Overview, Customer Profile, Risk Prediction, Customer Segmentation, Debt Optimization, Product Matching and Experimentation. Its prediction, profile, payoff and matching interactions call the FastAPI service. API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `FINSIGHT_API_URL` when the API is hosted elsewhere.
 
-### Dashboard screenshot
+### Open the dashboard
 
-Open the running dashboard at [http://127.0.0.1:8501](http://127.0.0.1:8501) to view the current FinSight interface. The previous branded screenshot was removed so it does not show stale project identity.
+After starting the API and Streamlit services, open [http://127.0.0.1:8501](http://127.0.0.1:8501) to view the FinSight dashboard.
 
 ### Docker
 
@@ -176,7 +190,7 @@ The API validates request types and finance ranges with Pydantic, returns 404 fo
 
 ## Monitoring and responsible use
 
-The batch monitor records prediction distribution, input missingness, per-feature PSI drift, and optional delayed-label PR-AUC/ROC-AUC/Brier metrics. `reports/monitoring.jsonl` is a local example, not a production monitoring service. Retraining is reproducible with `python scripts/run_pipeline.py`; model version and training metadata are stored with the joblib artifact and JSON report.
+The batch monitor records prediction distribution, input missingness, per-feature PSI drift, average per-record prediction latency for the scored batch, and optional delayed-label PR-AUC/ROC-AUC/Brier metrics. The pipeline's latency value is a batch-average timing measurement, not a production service-level latency monitor. `reports/monitoring.jsonl` is a local example, not a production monitoring service. Retraining is reproducible with `python scripts/run_pipeline.py`; model version and training metadata are stored with the joblib artifact and JSON report.
 
 Protected demographic fields are excluded from the optional UCI model. The synthetic demo does not model protected characteristics. Subgroup metrics are not claimed because no production demographic groups are available. The data is dated or generated, labels are imperfect, and all predictions and financial outputs carry uncertainty. A production system would require legal, privacy, security, fairness, suitability, consent and independent validation review.
 

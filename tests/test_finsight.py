@@ -27,10 +27,11 @@ from finsight.data.storage import write_bundle_sqlite, write_segments_sqlite
 from finsight.data.synthetic import generate_synthetic_data
 from finsight.data.uci import load_uci_credit_default
 from finsight.data.validation import validate_bundle
+from finsight.evaluation.eda import create_eda_report
 from finsight.evaluation.experimentation import simulate_experiment
 from finsight.features.engineering import MODEL_FEATURES, build_customer_features
 from finsight.models.risk import predict_risk, load_model
-from finsight.models.segmentation import segment_customers
+from finsight.models.segmentation import _label_segment, segment_customers
 from finsight.optimization.debt import compare_strategies, simulate_strategy
 from finsight.recommendations.products import match_products
 import backend.main as api
@@ -51,6 +52,7 @@ class TestDataAndFeatures(unittest.TestCase):
         report = validate_bundle(self.bundle)
         self.assertEqual(len(report), 4)
         self.assertEqual(sum(item["duplicate_key_rows"] for item in report), 0)
+        self.assertTrue(self.bundle.customers.customer_id.str.startswith("FS").all())
 
     def test_engineered_features_are_finite_and_label_excluded(self):
         self.assertTrue(set(MODEL_FEATURES).issubset(self.features.columns))
@@ -65,6 +67,16 @@ class TestDataAndFeatures(unittest.TestCase):
         broken.loc[1, "customer_id"] = broken.loc[0, "customer_id"]
         with self.assertRaisesRegex(ValueError, "unique"):
             build_customer_features(broken, self.bundle.transactions, self.bundle.repayments)
+
+    def test_eda_serializes_undefined_constant_feature_statistics_as_null(self):
+        features = self.features.copy()
+        features["constant_test_feature"] = 1.0
+        with tempfile.TemporaryDirectory() as temp:
+            report = create_eda_report(features, temp)
+            saved = json.loads((Path(temp) / "eda_summary.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["univariate"]["constant_test_feature"]["variance"], 0.0)
+        self.assertIsNone(saved["univariate"]["constant_test_feature"]["skewness"])
+        self.assertIsNone(saved["univariate"]["constant_test_feature"]["kurtosis"])
 
     def test_cached_uci_loader_excludes_sensitive_and_identifier_fields(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -124,6 +136,17 @@ class TestDecisionSupport(unittest.TestCase):
         self.assertGreaterEqual(result["products"][0]["suitability_score"], result["products"][-1]["suitability_score"])
         self.assertIn("hypothetical", result["caveat"])
 
+    def test_segment_label_reflects_high_recent_delinquency(self):
+        baseline = pd.Series({"credit_utilization_ratio": .35, "debt_to_income_ratio": .14,
+                              "spending_volatility": .07, "emergency_savings_coverage": 3.0,
+                              "recent_delinquency_frequency": .12, "payment_consistency_score": .82})
+        cluster = pd.Series({"credit_utilization_ratio": .45, "debt_to_income_ratio": .18,
+                             "spending_volatility": .06, "emergency_savings_coverage": 1.6,
+                             "recent_delinquency_frequency": .63, "payment_consistency_score": .39})
+        name, challenge, _ = _label_segment(cluster, baseline)
+        self.assertEqual(name, "Recent Repayment Difficulty")
+        self.assertIn("missed payments", challenge)
+
     def test_segmentation_and_experiment_reports(self):
         with tempfile.TemporaryDirectory() as temp:
             segments = segment_customers(self.features, temp, seed=9)
@@ -160,7 +183,7 @@ class TestApiIntegration(unittest.TestCase):
             features.to_csv(root / "data" / "processed" / "customer_features.csv", index=False)
             write_bundle_sqlite(bundle, root / "data" / "finsight.sqlite")
             segments = pd.DataFrame({"customer_id": features.customer_id, "cluster_id": 0,
-                                     "segment": "Financially Stable", "pca_1": 0.0, "pca_2": 0.0})
+                                     "segment": "Mixed Financial Profile", "pca_1": 0.0, "pca_2": 0.0})
             segments.to_csv(root / "reports" / "customer_segments.csv", index=False)
             write_segments_sqlite(segments, root / "data" / "finsight.sqlite")
             with closing(sqlite3.connect(root / "data" / "finsight.sqlite")) as connection:
@@ -187,7 +210,7 @@ class TestApiIntegration(unittest.TestCase):
                 self.assertIn("missed_payment_probability", risk)
                 TypeAdapter(api.RiskResponse).validate_python(risk)
                 segment = api.segment_customer_endpoint(api.SegmentRequest(customer_id=customer_id))
-                self.assertEqual(segment["segment"], "Financially Stable")
+                self.assertEqual(segment["segment"], "Mixed Financial Profile")
                 TypeAdapter(api.SegmentResponse).validate_python(segment)
                 payoff = api.optimize_debt_endpoint(api.OptimizationRequest(monthly_budget=200, debts=[
                     api.DebtInput(debt_id="d1", principal=300, annual_rate=.1, minimum_payment=20)]))

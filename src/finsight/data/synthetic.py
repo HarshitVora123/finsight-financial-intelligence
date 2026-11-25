@@ -25,7 +25,7 @@ def generate_synthetic_data(n_customers: int = 1_200, seed: int = 42) -> Synthet
     if n_customers < 100:
         raise ValueError("n_customers must be at least 100 for the demo dataset")
     rng = np.random.default_rng(seed)
-    ids = np.array([f"BP{i:06d}" for i in range(1, n_customers + 1)])
+    ids = np.array([f"FS{i:06d}" for i in range(1, n_customers + 1)])
     income = np.clip(rng.lognormal(np.log(4_600), 0.48, n_customers), 1_250, 18_000)
     employment_months = np.clip(rng.gamma(3.2, 24, n_customers), 1, 420).astype(int)
     limit = np.clip(income * rng.lognormal(1.05, 0.42, n_customers), 1_000, 65_000)

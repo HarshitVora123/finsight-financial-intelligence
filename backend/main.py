@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sqlite3
 from pathlib import Path
 import sys
@@ -19,7 +20,8 @@ from finsight.models.risk import load_model, predict_risk
 from finsight.optimization.debt import compare_strategies
 from finsight.recommendations.products import match_products
 
-logging.basicConfig(level=logging.INFO)
+configured_log_level = getattr(logging, os.getenv("FINSIGHT_LOG_LEVEL", "INFO").upper(), logging.INFO)
+logging.basicConfig(level=configured_log_level if isinstance(configured_log_level, int) else logging.INFO)
 logger = logging.getLogger("finsight.api")
 app = FastAPI(title="FinSight", version="0.1.0",
               description="Portfolio decision-support API. Not a credit approval or denial service.")

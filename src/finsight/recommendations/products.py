@@ -6,7 +6,7 @@ import math
 
 
 PRODUCT_CATALOGUE = [
-    {"product_id": "builder_01", "name": "Bright Builder Secured", "type": "secured credit-building",
+    {"product_id": "builder_01", "name": "FinSight Secured Builder", "type": "secured credit-building",
      "apr": 0.049, "fee": 0.0, "term_months": 12, "deposit": 200.0,
      "description": "Illustrative secured instalment product; requires a refundable deposit."},
     {"product_id": "consolidation_01", "name": "FinSight Lower-Rate Consolidation Pilot", "type": "debt consolidation",

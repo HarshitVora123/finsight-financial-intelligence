@@ -1,1 +1,1 @@
-"""Streamlit dashboard package."""
+"""FinSight dashboard package."""

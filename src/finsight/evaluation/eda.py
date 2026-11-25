@@ -10,6 +10,25 @@ import pandas as pd
 from scipy import stats
 
 
+def _json_compatible(value):
+    """Convert NumPy scalars and undefined statistics into strict JSON values."""
+    if value is pd.NA:
+        return None
+    if isinstance(value, dict):
+        return {key: _json_compatible(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_compatible(item) for item in value]
+    if isinstance(value, np.ndarray):
+        return _json_compatible(value.tolist())
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.bool_,)):
+        return bool(value)
+    if isinstance(value, (float, np.floating)):
+        return float(value) if np.isfinite(value) else None
+    return value
+
+
 def univariate_summary(frame: pd.DataFrame) -> dict:
     numeric = frame.select_dtypes(include="number")
     result = {}
@@ -94,5 +113,6 @@ def create_eda_report(features: pd.DataFrame, output_dir: str | Path) -> dict:
         "correlation_matrix": features.select_dtypes(include="number").corr().fillna(0).to_dict(),
         "business_readout": "These findings are descriptive of the selected dataset. Synthetic rows illustrate a pipeline and do not estimate real consumer outcomes.",
     }
+    report = _json_compatible(report)
     (output / "eda_summary.json").write_text(json.dumps(report, indent=2, allow_nan=False), encoding="utf-8")
     return report

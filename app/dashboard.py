@@ -1,6 +1,15 @@
 """FinSight's interactive Streamlit dashboard."""
 
+from pathlib import Path
+import sys
+
 import streamlit as st
+
+# Streamlit can set sys.path to the app/ directory when launched from a script
+# path. Add the repository root so package imports work from the project root.
+PROJECT_ROOT = str(Path(__file__).resolve().parents[1])
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from app.common import load_features
 from app.views import debt, experiment, overview, products, profile, risk, segmentation

@@ -64,7 +64,7 @@ def simulate_experiment(features: pd.DataFrame, output_dir: str | Path,
         (t_reduction.var(ddof=1) / n_treat) ** 2 / (n_treat - 1) + (c_reduction.var(ddof=1) / n_ctrl) ** 2 / (n_ctrl - 1))
     crit = stats.t.ppf(.975, df_w)
     results = {
-        "design": "Individual-level 1:1 randomized scenario; treatment effect is an explicit simulator assumption.",
+        "design": "Individual-level approximately 1:1 randomized scenario; odd sample sizes differ by one. Treatment effect is an explicit simulator assumption.",
         "assumptions": {"maximum absolute on_time uplift": assumed_max_absolute_uplift,
                         "generic recommendation acceptance": 0.25,
                         "personalized acceptance probability": "0.30 + 0.40 * recommendation_fit",
