@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import json
 import os
 import sqlite3
 from pathlib import Path
@@ -63,6 +64,7 @@ class ProductRequest(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     model_ready: bool
+    uci_model_ready: bool
     database_ready: bool
     data_source: str
 
@@ -158,8 +160,21 @@ def _find_customer(customer_id: str) -> pd.Series:
 @app.get("/health", response_model=HealthResponse)
 def health():
     return {"status": "ok", "model_ready": (ROOT / "models" / "risk_model.joblib").exists(),
+            "uci_model_ready": (ROOT / "models" / "uci" / "model_metrics.json").exists(),
             "database_ready": (ROOT / "data" / "finsight.sqlite").exists(),
             "data_source": "synthetic_demo"}
+
+
+@app.get("/uci-model-summary")
+def uci_model_summary():
+    path = ROOT / "models" / "uci" / "model_metrics.json"
+    if not path.exists():
+        raise HTTPException(status_code=503, detail="Public-data model is not trained yet. Run scripts/train_uci.py.")
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.exception("UCI model report could not be loaded")
+        raise HTTPException(status_code=500, detail="Public-data model report is unavailable.") from exc
 
 
 @app.get("/dashboard-summary", response_model=DashboardSummaryResponse)

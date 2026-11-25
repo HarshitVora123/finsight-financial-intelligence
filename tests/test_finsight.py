@@ -25,12 +25,13 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from finsight.data.storage import write_bundle_sqlite, write_segments_sqlite
 from finsight.data.synthetic import generate_synthetic_data
-from finsight.data.uci import load_uci_credit_default
+from finsight.data.uci import load_uci_credit_default, load_uci_credit_default_with_audit
 from finsight.data.validation import validate_bundle
 from finsight.evaluation.eda import create_eda_report
 from finsight.evaluation.experimentation import simulate_experiment
 from finsight.features.engineering import MODEL_FEATURES, build_customer_features
-from finsight.models.risk import predict_risk, load_model
+from finsight.models.risk import (_bootstrap_confidence_intervals, _subgroup_evaluation,
+                                  predict_risk, load_model)
 from finsight.models.segmentation import _label_segment, segment_customers
 from finsight.optimization.debt import compare_strategies, simulate_strategy
 from finsight.recommendations.products import match_products
@@ -88,6 +89,32 @@ class TestDataAndFeatures(unittest.TestCase):
             self.assertEqual(list(x.columns), ["LIMIT_BAL", "PAY_0"])
             self.assertEqual(y.name, "default_payment_next_month")
             self.assertEqual(list(y), [0, 1, 0, 1])
+
+    def test_uci_generic_columns_are_mapped_before_protected_fields_are_removed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "uci_generic_columns.csv"
+            frame = pd.DataFrame({f"X{i}": [i, i + 1, i + 2, i + 3] for i in range(1, 24)})
+            frame.insert(0, "ID", [1, 2, 3, 4])
+            frame["Y"] = [0, 1, 0, 1]
+            frame.to_csv(path, index=False)
+            features, target, audit = load_uci_credit_default_with_audit(path)
+        self.assertIn("LIMIT_BAL", features.columns)
+        self.assertIn("PAY_0", features.columns)
+        self.assertFalse({"ID", "SEX", "AGE", "EDUCATION", "MARRIAGE"}.intersection(features.columns))
+        self.assertEqual(set(audit.columns), {"SEX", "AGE", "EDUCATION", "MARRIAGE"})
+        self.assertEqual(list(target), [0, 1, 0, 1])
+
+    def test_real_data_audit_metrics_are_separate_and_have_uncertainty(self):
+        labels = np.array([0, 1] * 120)
+        probabilities = np.where(labels == 1, .7, .2)
+        audit = pd.DataFrame({"SEX": [1] * 120 + [2] * 120,
+                              "AGE": [25] * 120 + [45] * 120})
+        intervals = _bootstrap_confidence_intervals(labels, probabilities, .5, seed=4, iterations=40)
+        subgroup = _subgroup_evaluation(labels, probabilities, .5, audit)
+        self.assertLessEqual(intervals["roc_auc"][0], 1.0)
+        self.assertGreaterEqual(intervals["roc_auc"][1], .5)
+        self.assertEqual(subgroup["SEX"]["1"]["n"], 120)
+        self.assertNotIn("SEX", MODEL_FEATURES)
 
 
 class TestDebtOptimization(unittest.TestCase):
@@ -179,6 +206,7 @@ class TestApiIntegration(unittest.TestCase):
             root = Path(temp)
             (root / "data" / "processed").mkdir(parents=True)
             (root / "models").mkdir()
+            (root / "models" / "uci").mkdir()
             (root / "reports").mkdir()
             features.to_csv(root / "data" / "processed" / "customer_features.csv", index=False)
             write_bundle_sqlite(bundle, root / "data" / "finsight.sqlite")
@@ -195,9 +223,13 @@ class TestApiIntegration(unittest.TestCase):
                         "feature_medians": {"monthly_income": 3000.0, "credit_utilization_ratio": .4},
                         "metadata": {"decision_threshold": .25, "model_version": "test-model"}}
             joblib.dump(artifact, root / "models" / "risk_model.joblib")
+            uci_report_path = root / "models" / "uci" / "model_metrics.json"
+            uci_report_path.write_text(json.dumps({"source": "UCI_dataset_350", "evaluation": {}}),
+                                       encoding="utf-8")
             customer_id = str(features.iloc[0].customer_id)
             with patch.object(api, "ROOT", root):
                 self.assertEqual(api.health()["status"], "ok")
+                self.assertEqual(api.uci_model_summary()["source"], "UCI_dataset_350")
                 self.assertTrue(api.app.openapi()["paths"]["/predict-risk"]["post"]["responses"]["200"]["content"]["application/json"]["schema"])
                 TypeAdapter(api.HealthResponse).validate_python(api.health())
                 summary = api.dashboard_summary()

@@ -12,7 +12,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from app.common import load_features
-from app.views import debt, experiment, overview, products, profile, risk, segmentation
+from app.views import debt, experiment, overview, products, profile, real_data, risk, segmentation
 
 st.set_page_config(page_title="FinSight", page_icon="✦", layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
@@ -35,14 +35,16 @@ with st.sidebar:
     st.caption("Financial decision intelligence")
     page = st.radio("Workspace", ["Executive Overview", "Customer Profile", "Risk Prediction",
                                    "Customer Segmentation", "Debt Optimization", "Product Matching",
-                                   "Experimentation"], label_visibility="collapsed")
+                                   "Experimentation", "Public Data Model Evaluation"], label_visibility="collapsed")
     st.divider()
-    st.caption("Portfolio simulation · synthetic demo data")
+    st.caption("Historical public benchmark" if page == "Public Data Model Evaluation"
+               else "Portfolio simulation · synthetic demo data")
 
 frame = load_features()
 views = {"Executive Overview": overview, "Customer Profile": profile, "Risk Prediction": risk,
          "Customer Segmentation": segmentation, "Debt Optimization": debt,
-         "Product Matching": products, "Experimentation": experiment}
+         "Product Matching": products, "Experimentation": experiment,
+         "Public Data Model Evaluation": real_data}
 views[page].render(frame)
 st.markdown("---")
 st.caption("FinSight is an educational portfolio simulation. Model estimates and product examples are not financial advice or actual lender offers.")

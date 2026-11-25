@@ -22,6 +22,7 @@ flowchart LR
     K[Hypothetical product rules] --> J
     F --> L[SQLite and reports]
     G --> J
+    B --> J
     H --> J
     L --> J
     J --> M[Streamlit dashboard]
@@ -31,12 +32,20 @@ flowchart LR
 
 | Source | Use | Provenance |
 |---|---|---|
-| [UCI Default of Credit Card Clients, dataset 350](https://archive.ics.uci.edu/dataset/350/default%2Bof%2Bcredit%2Bcard%2Bclients) | Optional independent historical next-month default modeling | 30,000 Taiwan credit-card records; data from 2005. Licensed CC BY 4.0. Cite: Yeh, I. (2009), [UCI dataset DOI](https://doi.org/10.24432/C55S3H). |
+| [UCI Default of Credit Card Clients, dataset 350](https://archive.ics.uci.edu/dataset/350/default%2Bof%2Bcredit%2Bcard%2Bclients) | Independent real-data benchmark for next-month default | 30,000 Taiwan credit-card records; payment history from 2005. Licensed CC BY 4.0. Cite: Yeh, I. (2009), [UCI dataset DOI](https://doi.org/10.24432/C55S3H). |
 | Generated demo tables | Dashboard, behaviour features, clustering, optimization, experiment | Deterministic synthetic records created by `finsight.data.synthetic`; seed and customer count are configurable. No private or Bright Money data is used. |
 
 The generated table and model-feature dictionaries are in `reports/data_dictionary.json` after the pipeline runs. Employment tenure and credit-history length remain profile fields for descriptive analysis, but are deliberately excluded from risk model features because they can act as age proxies.
 
-To download and model the UCI data separately, install the `data` extra and run `python scripts/train_uci.py`. The loader excludes ID, sex, age, marital status and education from model features. The UCI dataset is not joined to synthetic customer or transaction records. If download access is unavailable, the primary demo remains fully runnable using synthetic data.
+To download and train on the public UCI data, install `requirements.txt` and run `python scripts/train_uci.py` (internet access is needed only for the first download). The loader maps UCI's generic feature names and excludes ID, sex, age, marital status and education from model predictors. Protected fields are retained separately for exploratory subgroup checks. This benchmark is not joined to the synthetic dashboard profiles and does not score them.
+
+## Public-data model evaluation
+
+The model below is trained and evaluated on the UCI dataset's observed historical records, rather than generated labels. The script writes the model artifact and metrics to `models/uci/`, caches the source CSV under ignored `data/raw/`, and refreshes this summary. Its historical Taiwan population and random holdout are not evidence of performance on a modern or different customer population.
+
+<!-- UCI_MODEL_SUMMARY_START -->
+The selected model was **Tuned Random Forest** on a stratified 7,500-record holdout from UCI_dataset_350 (30,000 records total; 22.1% positive across the full dataset). Test PR-AUC was **0.551** (stratified-bootstrap 95% CI 0.528–0.574; test prevalence baseline 0.221) and ROC-AUC was **0.776** (95% CI 0.762–0.788). At threshold 0.270, recall was 58.5%, specificity 84.7%, and Brier score 0.136; confusion matrix TN/FP/FN/TP = 4949/892/689/970. The threshold uses an illustrative 3:1 false-negative to false-positive cost assumption, not a measured business cost. Three-fold CV PR-AUC for the selected model was 0.553 (SD 0.001). Demographic fields were excluded from training features and are used only for exploratory held-out subgroup checks. This random holdout estimates performance within this historical dataset; it is not a time-forward or external-population validation.
+<!-- UCI_MODEL_SUMMARY_END -->
 
 ## Data dictionary
 
@@ -118,7 +127,7 @@ Customer features aggregate six months of transaction history and prior repaymen
 
 The final model is selected for PR-AUC and supportive-intervention recall, not raw accuracy. Global permutation importance and per-customer median-perturbation sensitivities provide explanations. They indicate model behaviour, not causation. SHAP is not required for this implementation.
 
-The separate UCI model predicts the historical Taiwan dataset's next-month default label and has a distinct feature schema and artifact under `models/uci/`. Its results do not transfer automatically to the synthetic dashboard or another population. Employment tenure and credit-history duration stay in the synthetic profile for analysis but are omitted from risk scoring because they can act as age proxies.
+The public-data evaluation page reports the UCI model's held-out results and subgroup checks from `models/uci/model_metrics.json`. It is kept separate from the synthetic customer risk page because the feature schema and population differ. Employment tenure and credit-history length stay in synthetic profiles for analysis but are omitted from synthetic risk scoring because they can act as age proxies.
 
 ## Customer segmentation
 
@@ -156,7 +165,7 @@ python -m uvicorn backend.main:app --reload --port 8000
 python -m streamlit run app/dashboard.py
 ```
 
-The dashboard has seven views: Executive Overview, Customer Profile, Risk Prediction, Customer Segmentation, Debt Optimization, Product Matching and Experimentation. Its prediction, profile, payoff and matching interactions call the FastAPI service. API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `FINSIGHT_API_URL` when the API is hosted elsewhere.
+The dashboard has eight views: Executive Overview, Customer Profile, Risk Prediction, Customer Segmentation, Debt Optimization, Product Matching, Experimentation and Public Data Model Evaluation. Its prediction, profile, payoff, matching and public-model report interactions call the FastAPI service. API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `FINSIGHT_API_URL` when the API is hosted elsewhere.
 
 ### Open the dashboard
 
@@ -175,6 +184,7 @@ The dashboard is served on port 8501 and the API on port 8000. The image build c
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | `/health` | Service and artifact readiness. |
+| GET | `/uci-model-summary` | Held-out metrics and audit results for the trained public-data benchmark. |
 | GET | `/dashboard-summary` | Aggregate demo metrics for the overview. |
 | GET | `/customer/{customer_id}/profile` | Profile, debts and repayment history. |
 | POST | `/predict-risk` | Estimated future missed-payment probability and local sensitivities. |

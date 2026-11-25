@@ -67,10 +67,72 @@ def _metrics(y_true, probabilities, threshold) -> dict:
     }
 
 
+def _bootstrap_confidence_intervals(y_true: np.ndarray, probabilities: np.ndarray,
+                                   threshold: float, seed: int = 42,
+                                   iterations: int = 300) -> dict:
+    """Estimate holdout uncertainty with a class-stratified bootstrap."""
+    positive = np.flatnonzero(y_true == 1)
+    negative = np.flatnonzero(y_true == 0)
+    if min(len(positive), len(negative)) < 2:
+        return {}
+    rng = np.random.default_rng(seed)
+    sampled_metrics = {name: [] for name in ("pr_auc", "roc_auc", "recall", "specificity")}
+    for _ in range(iterations):
+        sample = np.concatenate([
+            rng.choice(positive, size=len(positive), replace=True),
+            rng.choice(negative, size=len(negative), replace=True),
+        ])
+        labels, probs = y_true[sample], probabilities[sample]
+        predicted = probs >= threshold
+        tn, fp, fn, tp = confusion_matrix(labels, predicted, labels=[0, 1]).ravel()
+        sampled_metrics["pr_auc"].append(average_precision_score(labels, probs))
+        sampled_metrics["roc_auc"].append(roc_auc_score(labels, probs))
+        sampled_metrics["recall"].append(tp / (tp + fn) if tp + fn else 0.0)
+        sampled_metrics["specificity"].append(tn / (tn + fp) if tn + fp else 0.0)
+    return {metric: [float(value) for value in np.quantile(values, [.025, .975])]
+            for metric, values in sampled_metrics.items()}
+
+
+def _subgroup_evaluation(y_true: np.ndarray, probabilities: np.ndarray, threshold: float,
+                         audit_features: pd.DataFrame, minimum_group_size: int = 100) -> dict:
+    """Evaluate protected-attribute slices without including them as predictors."""
+    result = {}
+    for column in [name for name in ("SEX", "AGE", "EDUCATION", "MARRIAGE")
+                   if name in audit_features.columns]:
+        values = audit_features[column].reset_index(drop=True)
+        if column == "AGE":
+            groups = pd.cut(values, bins=[0, 29, 39, 49, 59, np.inf],
+                            labels=["<=29", "30-39", "40-49", "50-59", "60+"],
+                            include_lowest=True).astype("string")
+        else:
+            groups = values.map(lambda value: "Unknown" if pd.isna(value) else str(int(value)))
+        column_result = {}
+        for group in sorted(groups.dropna().unique()):
+            mask = groups.eq(group).to_numpy()
+            group_y, group_prob = y_true[mask], probabilities[mask]
+            n = int(mask.sum())
+            if n < minimum_group_size or np.unique(group_y).size < 2:
+                column_result[str(group)] = {"n": n, "status": "Insufficient data for stable slice metrics."}
+                continue
+            predicted = group_prob >= threshold
+            tn, fp, fn, tp = confusion_matrix(group_y, predicted, labels=[0, 1]).ravel()
+            column_result[str(group)] = {
+                "n": n, "outcome_rate": float(group_y.mean()),
+                "predicted_positive_rate": float(predicted.mean()),
+                "recall": float(tp / (tp + fn)) if tp + fn else 0.0,
+                "false_positive_rate": float(fp / (fp + tn)) if fp + tn else 0.0,
+                "precision": float(tp / (tp + fp)) if tp + fp else 0.0,
+                "brier_score": float(brier_score_loss(group_y, group_prob)),
+            }
+        result[column] = column_result
+    return result
+
+
 def train_risk_model(frame: pd.DataFrame, output_dir: str | Path,
                      feature_columns: list[str] | None = None,
                      target_column: str = "simulated_missed_payment_next_month",
-                     source: str = "synthetic_demo", seed: int = 42) -> dict:
+                     source: str = "synthetic_demo", seed: int = 42,
+                     audit_features: pd.DataFrame | None = None) -> dict:
     """Train and compare models, tune RF, calibrate the selected model, persist artifact.
 
     All preprocessing is inside sklearn pipelines. The holdout is never used for
@@ -85,8 +147,13 @@ def train_risk_model(frame: pd.DataFrame, output_dir: str | Path,
     y = frame[target_column].astype(int).copy()
     if y.nunique() != 2:
         raise ValueError("Risk outcome must have both positive and negative examples")
-    x_train, x_test, y_train, y_test = train_test_split(
-        x, y, test_size=.25, stratify=y, random_state=seed)
+    if audit_features is not None and len(audit_features) != len(frame):
+        raise ValueError("Audit features must have the same number of rows as the training frame")
+    positions = np.arange(len(frame))
+    train_positions, test_positions = train_test_split(
+        positions, test_size=.25, stratify=y, random_state=seed)
+    x_train, x_test = x.iloc[train_positions], x.iloc[test_positions]
+    y_train, y_test = y.iloc[train_positions], y.iloc[test_positions]
     cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
     candidates = {
         "logistic_regression": _pipeline(LogisticRegression(max_iter=1200, class_weight="balanced", random_state=seed)),
@@ -141,6 +208,13 @@ def train_risk_model(frame: pd.DataFrame, output_dir: str | Path,
     final_model.fit(x_train, y_train)
     test_prob = final_model.predict_proba(x_test)[:, 1]
     test_metrics = _metrics(y_test.to_numpy(), test_prob, threshold)
+    test_metrics["positive_prevalence"] = float(y_test.mean())
+    test_metrics["bootstrap_95pct_ci"] = _bootstrap_confidence_intervals(
+        y_test.to_numpy(), test_prob, threshold, seed=seed)
+    if audit_features is not None:
+        test_metrics["subgroup_evaluation"] = _subgroup_evaluation(
+            y_test.to_numpy(), test_prob, threshold,
+            audit_features.reset_index(drop=True).iloc[test_positions])
     # Report a transparent intervention trade-off in count form as well as metrics.
     test_metrics["decision_cost_assumption"] = {"false_negative_relative_cost": 3, "false_positive_relative_cost": 1}
     importance = permutation_importance(final_model, x_test, y_test, scoring="average_precision",
